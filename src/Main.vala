@@ -2,6 +2,12 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
     string[] paths ;
     const ulong GB = (1024 * 1024) * 1024 ;
 
+    public Gtk.Box content_area { get ; set ; }
+
+    public Gtk.ScrolledWindow sw_settings { get ; set ; }
+
+    public Gtk.Dialog settings_dialog { get ; set ; }
+
     /* Our display widget, a composited icon */
     private Wingpanel.Widgets.OverlayIcon display_widget ;
 
@@ -30,6 +36,18 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
             var full_path = file.get_path () ;
             paths += full_path ;
             settings.set_strv ("paths", paths) ;
+
+            content_area.remove (sw_settings) ;
+            sw_settings.destroy () ;
+
+            generate_settings_listbox () ;
+            generate_sw_settings () ;
+
+            content_area.pack_start (sw_settings) ;
+            content_area.reorder_child (sw_settings, 0) ;
+            settings_dialog.show_all () ;
+            // settings_dialog.present () ;
+
             break ;
         case Gtk.ResponseType.CANCEL:
             dlg.destroy () ;
@@ -60,7 +78,7 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
                 Gtk.Box box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0) ;
 
                 Posix.statvfs buffer = Posix.statvfs () ;
-                int size_home = Posix.statvfs_exec (paths[i], out buffer) ;
+                Posix.statvfs_exec (paths[i], out buffer) ;
                 ulong total = (ulong) (buffer.f_blocks * buffer.f_frsize) / GB ;
                 ulong available = (ulong) (buffer.f_bfree * buffer.f_frsize) / GB ;
 
@@ -111,13 +129,27 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
         }
     }
 
+    private void generate_sw_settings() {
+        sw_settings = new Gtk.ScrolledWindow (null, null) ;
+        sw_settings.set_policy (Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC) ;
+        sw_settings.min_content_height = 200 ;
+        sw_settings.max_content_height = 600 ;
+        sw_settings.add (lb_settings) ;
+    }
+
     public void open_settings_window() {
-        var settings_dialog = new Gtk.Dialog () ;
+        settings_dialog = new Gtk.Dialog () ;
+
+        // settings_dialog = new Gtk.Dialog.with_buttons ("Settings", null,
+        // Gtk.DialogFlags.USE_HEADER_BAR,
+        // Gtk.DialogFlags.MODAL) ;
         settings_dialog.deletable = false ;
         settings_dialog.resizable = false ;
         settings_dialog.default_width = 400 ;
+        settings_dialog.decorated = true ;
+        settings_dialog.border_width = 10 ;
 
-        var content_area = settings_dialog.get_content_area () ;
+        content_area = settings_dialog.get_content_area () ;
 
         generate_settings_listbox () ;
 
@@ -129,9 +161,11 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
             open_dialog (settings_dialog) ;
         }) ;
 
-        content_area.pack_end (lb_settings) ;
-        content_area.pack_end (new Wingpanel.Widgets.Separator ()) ;
+        generate_sw_settings () ;
+
         content_area.pack_end (apply_button) ;
+        content_area.pack_end (sw_settings) ;
+        content_area.pack_end (new Wingpanel.Widgets.Separator ()) ;
         settings_dialog.show_all () ;
         settings_dialog.present () ;
     }
@@ -146,9 +180,9 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
         create_items () ;
 
         var scrolled = new Gtk.ScrolledWindow (null, null) ;
-        scrolled.hscrollbar_policy = Gtk.PolicyType.NEVER ;
-        scrolled.max_content_height = 500 ;
-        scrolled.propagate_natural_height = true ;
+        scrolled.set_policy (Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC) ;
+        scrolled.min_content_height = 100 ;
+        scrolled.max_content_height = 600 ;
         scrolled.add (listbox) ;
 
         settings_button = new Gtk.ModelButton () ;
@@ -214,3 +248,12 @@ public Wingpanel.Indicator ? get_indicator (Module module, Wingpanel.IndicatorMa
     /* Return the newly created indicator */
     return indicator ;
 }
+
+// scrolled.hscrollbar_policy = Gtk.PolicyType.NEVER ;
+// scrolled.propagate_natural_height = true ;
+
+
+// main_window.remove (this) ;
+// this.destroy () ;
+// main_window.remove (main_window.welcome_header_bar) ;
+// main_window.welcome_header_bar.destroy () ;
