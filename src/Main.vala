@@ -1,110 +1,131 @@
 public class DiskUsage.Indicator : Wingpanel.Indicator {
-    public GLib.Settings settings ;
-    private Gtk.Grid main_grid ;
-    private Gtk.Image display_icon ;
+    /* Our display widget, a composited icon */
+    private Wingpanel.Widgets.OverlayIcon display_widget ;
 
-    Gtk.ModelButton restart_button ;
-    Gtk.ModelButton settings_button ;
+    /* The main widget that is displayed in the popover */
+    private Gtk.Grid main_widget ;
+
+    private Gtk.ListBox listbox ;
 
     public Indicator () {
+        /* Some information about the indicator */
         Object (
-            code_name: "indicator-disk-usage",
-            display_name: ("disk-usage"),
+            code_name: "disk-usage-indicator", /* Unique name */
             description: ("A wingpanel indicator to show disk-usage.")
             ) ;
     }
 
+    private void create_items() {
+        listbox = new Gtk.ListBox () ;
+
+        const ulong GB = (1024 * 1024) * 1024 ;
+
+        Posix.statvfs buffer = Posix.statvfs () ;
+        int size_home = Posix.statvfs_exec ("/home/linarcx/", out buffer) ;
+        ulong total = (ulong) (buffer.f_blocks * buffer.f_frsize) / GB ;
+        // ulong total = (ulong) (buffer.f_bsize * buffer.f_bavail) ;
+        ulong available = (ulong) (buffer.f_bfree * buffer.f_frsize) / GB ;
+
+        var row = new Gtk.ListBoxRow () ;
+        row.height_request = 30 ;
+
+        var lbl_name = new Gtk.Label ("Home:") ;
+        lbl_name.set_margin_left (5) ;
+        lbl_name.set_halign (Gtk.Align.START) ;
+
+        var lbl_size = new Gtk.Label (total.to_string () + " / " + available.to_string ()) ;
+        // lbl_size.set_margin_right (5) ;
+        lbl_size.set_halign (Gtk.Align.END) ;
+
+        Gtk.Box box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0) ;
+        box.pack_start (lbl_name, false, false, 0) ;
+        box.pack_start (lbl_size, true, false, 0) ;
+
+        row.add (box) ;
+        row.show_all () ;
+        listbox.insert (row, -1) ;
+    }
+
     construct {
-        var gtk_settings = Gtk.Settings.get_default () ;
-        settings = new GLib.Settings ("com.github.linarcx.indicator-disk-usage") ;
+        /* Create a new composited icon */
+        display_widget = new Wingpanel.Widgets.OverlayIcon ("drive-harddisk") ;
 
-        display_icon = new Gtk.Image.from_icon_name ("drive-harddisk", Gtk.IconSize.LARGE_TOOLBAR) ;
-        restart_button = new Gtk.ModelButton () ;
-        restart_button.text = ("Restart Dock") ;
+        create_items () ;
 
-        settings_button = new Gtk.ModelButton () ;
-        settings_button.text = ("Indicator Settings…") ;
+        var scrolled = new Gtk.ScrolledWindow (null, null) ;
+        scrolled.hscrollbar_policy = Gtk.PolicyType.NEVER ;
+        scrolled.max_content_height = 500 ;
+        scrolled.propagate_natural_height = true ;
+        scrolled.add (listbox) ;
 
-        main_grid = new Gtk.Grid () ;
-        // main_grid.attach (toggle_switch, 0, 0) ;
-        main_grid.attach (new Wingpanel.Widgets.Separator (), 0, 1) ;
-        if( settings.get_boolean ("button-show")){
-            main_grid.attach (restart_button, 0, 2) ;
-        }
-        main_grid.attach (settings_button, 0, 3) ;
+        var compositing_switch = new Wingpanel.Widgets.Switch ("Composited Icon") ;
 
+        main_widget = new Gtk.Grid () ;
+        main_widget.attach (scrolled, 0, 0) ;
+        main_widget.attach (new Wingpanel.Widgets.Separator (), 0, 1) ;
+        main_widget.attach (compositing_switch, 0, 2) ;
+
+        /* Indicator should be visible at startup */
         this.visible = true ;
-        connect_signals () ;
+
+        compositing_switch.notify["active"].connect (() => {
+            /* If the switch is enabled set the icon name of the icon that should be drawn on top of the other one, if not hide the top icon. */
+            display_widget.set_overlay_icon_name (compositing_switch.active ? "network-vpn-lock-symbolic" : "") ;
+        }) ;
     }
 
-    private void connect_signals() {
-        restart_button.clicked.connect (() => {
-            Posix.system ("pkill plank") ;
-        }) ;
-
-        settings_button.clicked.connect (open_settings_window) ;
-    }
-
-    public void open_settings_window() {
-        var settings_dialog = new Gtk.Dialog () ;
-        settings_dialog.resizable = false ;
-        settings_dialog.deletable = false ;
-
-        var content_area = settings_dialog.get_content_area () ;
-
-        var show_restartbutton_switch = new Wingpanel.Widgets.Switch (("Show restart button on indicator"), settings.get_boolean ("button-show")) ;
-        show_restartbutton_switch.notify["active"].connect (() => {
-            if( show_restartbutton_switch.active ){
-                settings.set_boolean ("button-show", true) ;
-            } else {
-                settings.set_boolean ("button-show", false) ;
-            }
-        }) ;
-
-        var apply_button = new Gtk.Button.with_label (("Apply")) ;
-        apply_button.halign = Gtk.Align.CENTER ;
-        apply_button.get_style_context ().add_class ("suggested-action") ;
-        apply_button.clicked.connect (() => {
-            Posix.system ("pkill wingpanel") ;
-        }) ;
-
-        // content_area.add (restart_on_toggle_switch) ;
-        content_area.add (show_restartbutton_switch) ;
-        content_area.add (new Wingpanel.Widgets.Separator ()) ;
-        content_area.add (apply_button) ;
-        settings_dialog.show_all () ;
-        settings_dialog.present () ;
-    }
-
+    /* This method is called to get the widget that is displayed in the panel */
     public override Gtk.Widget get_display_widget() {
-        return display_icon ;
+        return display_widget ;
     }
 
+    /* This method is called to get the widget that is displayed in the popover */
     public override Gtk.Widget ? get_widget () {
-        if( main_grid == null ){
-            main_grid = new Gtk.Grid () ;
-            main_grid.set_orientation (Gtk.Orientation.VERTICAL) ;
-
-            main_grid.show_all () ;
-        }
-        return main_grid ;
+        return main_widget ;
     }
 
+    /* This method is called when the indicator popover opened */
     public override void opened() {
+        /* Use this method to get some extra information while displaying the indicator */
     }
 
+    /* This method is called when the indicator popover closed */
     public override void closed() {
+        /* Your stuff isn't shown anymore, now you can free some RAM, stop timers or anything else... */
     }
 
 }
 
+/*
+ * This method is called once after your plugin has been loaded.
+ * Create and return your indicator here if it should be displayed on the current server.
+ */
 public Wingpanel.Indicator ? get_indicator (Module module, Wingpanel.IndicatorManager.ServerType server_type) {
-    // Temporal workarround for Greeter crash
+    /* A small message for debugging reasons */
+    debug ("Activating DiskUsage Indicator") ;
+
+    /* Check which server has loaded the plugin */
     if( server_type != Wingpanel.IndicatorManager.ServerType.SESSION ){
+        /* We want to display our sample indicator only in the "normal" session, not on the login screen, so stop here! */
         return null ;
     }
 
-    debug ("Activating DiskUsage Indicator") ;
+    /* Create the indicator */
     var indicator = new DiskUsage.Indicator () ;
+
+    /* Return the newly created indicator */
     return indicator ;
 }
+
+
+// var hide_button = new Gtk.ModelButton () ;
+// hide_button.text = "Hide me!" ;
+
+// hide_button.clicked.connect (() => {
+// this.visible = false ;
+
+// Timeout.add (2000, () => {
+// this.visible = true ;
+// return false ;
+// }) ;
+// }) ;

@@ -13,7 +13,7 @@ in
       pkgs.pkg-config
       pkgs-2020-03-23.ninja
       pkgs-2020-03-23.meson
-      #pkgs-2020-03-23.wrapGAppsHook
+      pkgs-2020-03-23.wrapGAppsHook
     ];
 
     buildInputs = [
@@ -40,7 +40,7 @@ in
       pkgs-2020-03-23.dbus
       pkgs-2020-03-23.xorg.libXtst
 
-      #pkgs-2020-03-23.libcanberra-gtk3
+      pkgs-2020-03-23.libcanberra-gtk3
       pkgs-2020-03-23.libgit2-glib
       pkgs-2020-03-23.libgee
       pkgs-2020-03-23.pantheon.granite

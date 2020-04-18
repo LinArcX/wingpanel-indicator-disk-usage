@@ -22,7 +22,7 @@ au BufEnter,BufWrite *.vala call FormatCurrentFile()
 let s:update = "update | w |"
 let s:meson_build = 'nix-shell --command \"meson build --prefix=/usr; ln -s build/compile_commands.json .; cd build; ninja; \"' . '\n'
 let s:project_clear = "clear; rm compile_commands.json; rm -rfv build/**; rm -rfv debug/**; rm -rfv release/**; \n"
-let s:ninja_isntall = "cd build; sudo ninja install \n"
+let s:ninja_isntall = "cd build; sudo ninja install; pkill wingpanel -9  \n"
 let s:ninja_unisntall = "cd build; sudo ninja uninstall \n"
 
 call quickui#menu#clear('P&roject')
