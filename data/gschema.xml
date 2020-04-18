@@ -1,15 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
     <schema path="/com/github/linarcx/indicator-disk-usage/" id="com.github.linarcx.indicator-disk-usage">
-        <key name="restart-on-toggle" type="b">
-            <default>false</default>
-            <summary>Restart Dock on toggle.</summary>
-            <description>The saved value for determining whether the user want to restart the dock on toggle.</description>
-        </key>
-        <key name="button-show" type="b">
-            <default>true</default>
-            <summary>Show restart button on indicator.</summary>
-            <description>The saved value to toggle visibility of restart button on indicator.</description>
+        <key name="paths" type="as">
+            <default>["/"]</default>
+            <summary>Paths</summary>
+            <description>List of all Paths that will calculate their space</description>
         </key>
     </schema>
 </schemalist>
