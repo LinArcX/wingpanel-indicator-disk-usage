@@ -127,6 +127,10 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
         }
     }
 
+    private void restart_wingpanel(string key) {
+        Posix.system ("pkill wingpanel -9") ;
+    }
+
     construct {
         paths = list_of_all_mount_devices () ;
 
@@ -148,10 +152,11 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
         compositing_switch.notify["active"].connect (() => {
             if( compositing_switch.active ){
                 settings.set_boolean ("show-badge-icons", true) ;
+                // settings.changed.connect (restart_wingpanel) ;
             } else {
                 settings.set_boolean ("show-badge-icons", false) ;
+                // settings.changed.connect (restart_wingpanel) ;
             }
-            Posix.system ("pkill wingpanel") ;
         }) ;
 
         main_grid = new Gtk.Grid () ;
