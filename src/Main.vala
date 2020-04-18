@@ -1,21 +1,19 @@
 public class DiskUsage.Indicator : Wingpanel.Indicator {
 
     string[] paths ;
-    const ulong GB = (1024 * 1024) * 1024 ;
-
-    bool is_badge_warning_visible = false ;
-    bool is_badge_critical_visible = false ;
+    bool is_warning = false ;
+    bool is_critical = false ;
     bool show_badge_icons = false ;
+    const ulong GB = (1024 * 1024) * 1024 ;
 
     /* Our display widget, a composited icon */
     private DiskUsage.OverlayIcon display_widget ;
 
     /* The main widget that is displayed in the popover */
     private Gtk.Grid main_grid ;
-
     public Gtk.ListBox lb_main ;
-
     public GLib.Settings settings { get ; set ; }
+    private Wingpanel.Widgets.Switch _switch { get ; set ; }
 
     public Indicator () {
         /* Some information about the indicator */
@@ -64,19 +62,6 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
                 ulong total = (ulong) (buffer.f_blocks * buffer.f_frsize) / GB ;
                 ulong available = (ulong) (buffer.f_bfree * buffer.f_frsize) / GB ;
 
-                bool is_ok = false ;
-                bool is_warning = false ;
-                bool is_critiacl = false ;
-                if( available > total / 4 ) is_ok = true ;
-                if( available >= total / 10 && available <= total / 4 ){
-                    is_warning = true ;
-                    is_badge_warning_visible = true ;
-                }
-                if( available < total / 10 ){
-                    is_critiacl = true ;
-                    is_badge_critical_visible = true ;
-                }
-
                 var row = new Gtk.ListBoxRow () ;
                 row.height_request = 30 ;
 
@@ -85,36 +70,27 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
                 lbl_name.set_halign (Gtk.Align.START) ;
 
                 var lbl_size_total = new Gtk.Label (total.to_string () + " GB " + " / ") ;
-
                 var lbl_size_available = new Gtk.Label (available.to_string () + " GB ") ;
                 lbl_size_available.set_halign (Gtk.Align.END) ;
                 lbl_size_available.set_margin_right (15) ;
-                // lbl_size.override_background_color (Gtk.StateFlags.NORMAL, { 1, 0, 0, 1 }) ;
 
-                if( is_ok ){
-                    // rgba(0, 230, 64, 1)
+                if( available > total / 4 ){
                     lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0, 0.90, 0.25, 1 }) ;
-                } else if( is_warning ){
-                    // rgba(238, 238, 0, 1)
-                    // lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0.933, 0.933, 0, 0.7 }) ;
-
-                    // rgba(244, 208, 63, 1)
-                    lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0.956, 0.815, 0.247, 0.7 }) ;
-                } else if( is_critiacl ){
-                    // rgba(217, 30, 24, 1)
-                    lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0.850, 0.117, 0.094, 1 }) ;
                 }
-
-                if( show_badge_icons ){
-                    /* If the switch is enabled set the icon name of the icon that should be drawn on top of the other one, if not hide the top icon. */
-                    if( is_critiacl ){
-                        display_widget.set_overlay_icon_name ("warning-symbolic") ;
-                    }
-                    if( is_warning ){
+                if( available >= total / 10 && available <= total / 4 ){
+                    is_warning = true ;
+                    lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0.956, 0.815, 0.247, 0.7 }) ;
+                    if( show_badge_icons ){
                         display_widget.set_overlay_icon_name ("dialog-warning") ;
                     }
                 }
-
+                if( available < total / 10 ){
+                    is_critical = true ;
+                    lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0.850, 0.117, 0.094, 1 }) ;
+                    if( show_badge_icons ){
+                        display_widget.set_overlay_icon_name ("warning-symbolic") ;
+                    }
+                }
                 box.pack_start (lbl_name, false, false, 0) ;
                 box.pack_end (lbl_size_available, false, false, 0) ;
                 box.pack_end (lbl_size_total, false, false, 0) ;
@@ -122,13 +98,8 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
                 row.add (box) ;
                 row.show_all () ;
                 lb_main.insert (row, -1) ;
-
             }
         }
-    }
-
-    private void restart_wingpanel(string key) {
-        Posix.system ("pkill wingpanel -9") ;
     }
 
     construct {
@@ -148,21 +119,21 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
         scrolled.max_content_height = 600 ;
         scrolled.add (lb_main) ;
 
-        var compositing_switch = new Wingpanel.Widgets.Switch ("Show badge Icons") ;
-        compositing_switch.notify["active"].connect (() => {
-            if( compositing_switch.active ){
+        _switch = new Wingpanel.Widgets.Switch ("Show badge Icons") ;
+        _switch.notify["active"].connect (() => {
+            if( _switch.active ){
                 settings.set_boolean ("show-badge-icons", true) ;
-                // settings.changed.connect (restart_wingpanel) ;
+                show_badge_icons = true ;
             } else {
                 settings.set_boolean ("show-badge-icons", false) ;
-                // settings.changed.connect (restart_wingpanel) ;
+                show_badge_icons = false ;
             }
         }) ;
 
         main_grid = new Gtk.Grid () ;
         main_grid.attach (scrolled, 0, 0) ;
         main_grid.attach (new Wingpanel.Widgets.Separator (), 0, 1) ;
-        main_grid.attach (compositing_switch, 0, 2) ;
+        main_grid.attach (_switch, 0, 2) ;
 
         /* Indicator should be visible at startup */
         this.visible = true ;
@@ -181,11 +152,27 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
     /* This method is called when the indicator popover opened */
     public override void opened() {
         /* Use this method to get some extra information while displaying the indicator */
+        if( show_badge_icons == true ){
+            _switch.active = true ;
+        } else {
+            _switch.active = false ;
+        }
     }
 
     /* This method is called when the indicator popover closed */
     public override void closed() {
         /* Your stuff isn't shown anymore, now you can free some RAM, stop timers or anything else... */
+        if( show_badge_icons ){
+            /* If the switch is enabled set the icon name of the icon that should be drawn on top of the other one, if not hide the top icon. */
+            if( is_critical ){
+                display_widget.set_overlay_icon_name ("warning-symbolic") ;
+            }
+            if( is_warning ){
+                display_widget.set_overlay_icon_name ("dialog-warning") ;
+            }
+        } else {
+            display_widget.set_overlay_icon_name ("") ;
+        }
     }
 
 }
