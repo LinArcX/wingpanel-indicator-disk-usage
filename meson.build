@@ -1,4 +1,4 @@
-project('com.github.linarcx.indicator-disk-usage', 'vala', 'c')
+project('com.github.linarcx.wingpanel.indicator-disk-usage', 'vala', 'c')
 
 wingpanel_dep = dependency('wingpanel-2.0')
 

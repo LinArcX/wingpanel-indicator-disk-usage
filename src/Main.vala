@@ -3,6 +3,10 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
     string[] paths ;
     const ulong GB = (1024 * 1024) * 1024 ;
 
+    bool is_badge_warning_visible = false ;
+    bool is_badge_critical_visible = false ;
+    bool show_badge_icons = false ;
+
     /* Our display widget, a composited icon */
     private DiskUsage.OverlayIcon display_widget ;
 
@@ -10,6 +14,8 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
     private Gtk.Grid main_grid ;
 
     public Gtk.ListBox lb_main ;
+
+    public GLib.Settings settings { get ; set ; }
 
     public Indicator () {
         /* Some information about the indicator */
@@ -62,8 +68,14 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
                 bool is_warning = false ;
                 bool is_critiacl = false ;
                 if( available > total / 4 ) is_ok = true ;
-                if( available >= total / 10 && available <= total / 4 ) is_warning = true ;
-                if( available < total / 10 ) is_critiacl = true ;
+                if( available >= total / 10 && available <= total / 4 ){
+                    is_warning = true ;
+                    is_badge_warning_visible = true ;
+                }
+                if( available < total / 10 ){
+                    is_critiacl = true ;
+                    is_badge_critical_visible = true ;
+                }
 
                 var row = new Gtk.ListBoxRow () ;
                 row.height_request = 30 ;
@@ -93,6 +105,16 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
                     lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0.850, 0.117, 0.094, 1 }) ;
                 }
 
+                if( show_badge_icons ){
+                    /* If the switch is enabled set the icon name of the icon that should be drawn on top of the other one, if not hide the top icon. */
+                    if( is_critiacl ){
+                        display_widget.set_overlay_icon_name ("warning-symbolic") ;
+                    }
+                    if( is_warning ){
+                        display_widget.set_overlay_icon_name ("dialog-warning") ;
+                    }
+                }
+
                 box.pack_start (lbl_name, false, false, 0) ;
                 box.pack_end (lbl_size_available, false, false, 0) ;
                 box.pack_end (lbl_size_total, false, false, 0) ;
@@ -108,6 +130,9 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
     construct {
         paths = list_of_all_mount_devices () ;
 
+        settings = new GLib.Settings ("com.github.linarcx.wingpanel.indicator-disk-usage") ;
+        show_badge_icons = settings.get_boolean ("show-badge-icons") ;
+
         /* Create a new composited icon */
         display_widget = new DiskUsage.OverlayIcon ("drive-harddisk") ;
 
@@ -119,10 +144,14 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
         scrolled.max_content_height = 600 ;
         scrolled.add (lb_main) ;
 
-        var compositing_switch = new Wingpanel.Widgets.Switch ("Composited Icon") ;
+        var compositing_switch = new Wingpanel.Widgets.Switch ("Show badge Icons") ;
         compositing_switch.notify["active"].connect (() => {
-            /* If the switch is enabled set the icon name of the icon that should be drawn on top of the other one, if not hide the top icon. */
-            display_widget.set_overlay_icon_name (compositing_switch.active ? "warning-symbolic" : "") ;
+            if( compositing_switch.active ){
+                settings.set_boolean ("show-badge-icons", true) ;
+            } else {
+                settings.set_boolean ("show-badge-icons", false) ;
+            }
+            Posix.system ("pkill wingpanel") ;
         }) ;
 
         main_grid = new Gtk.Grid () ;
@@ -176,8 +205,3 @@ public Wingpanel.Indicator ? get_indicator (Module module, Wingpanel.IndicatorMa
     /* Return the newly created indicator */
     return indicator ;
 }
-
-// lbl_size.set_margin_right (5) ;
-// lbl_size.override_color (StateFlags state, RGBA ? color) ;
-// lbl_size.set_markup ("<font color='red'>Small text</font>") ;
-// lbl_size.modify_fg (Gtk.StateType.NORMAL, { 1, 0, 0, 1 }) ;

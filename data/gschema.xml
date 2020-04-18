@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-    <schema path="/com/github/linarcx/indicator-disk-usage/" id="com.github.linarcx.indicator-disk-usage">
-        <key name="paths" type="as">
-            <default></default>
-            <summary>Paths</summary>
-            <description>List of all Paths that will calculate their space</description>
+    <schema path="/com/github/linarcx/wingpanel/indicator-disk-usage/" id="com.github.linarcx.wingpanel.indicator-disk-usage">
+        <key name="show-badge-icons" type="b">
+            <default>true</default>
+            <summary>Show bade icons on indicator.</summary>
+            <description>This will show the warning/critical badges when disk spaces are lower than a specific amount.</description>
         </key>
     </schema>
 </schemalist>

@@ -5,7 +5,7 @@ let
 in
   pkgs-2020-03-23.clangStdenv.mkDerivation rec {
     pname   = "giti";
-    fname   = "com.github.linarcx.indicator-disk-usage";
+    fname   = "com.github.linarcx.wingpanel.indicator-disk-usage";
     version = "1.0.0";
     name    = "${pname}${version}";
 
