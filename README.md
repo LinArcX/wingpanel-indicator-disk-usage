@@ -1,6 +1,6 @@
 #  Wingpanel Disk-Usage Indicator
 <h4 align="center">
-    <img src="https://img.shields.io/travis/LinArcX/giti"/>  <img src="https://img.shields.io/github/tag/LinArcX/giti.svg?colorB=green"/>  <img src="https://img.shields.io/github/repo-size/LinArcX/giti.svg"/>  <img src="https://img.shields.io/github/languages/top/LinArcX/giti.svg"/>
+    <img src="https://img.shields.io/travis/LinArcX/wingpanel-indicator-disk-usage"/>  <img src="https://img.shields.io/github/tag/LinArcX/wingpanel-indicator-disk-usage.svg?colorB=green"/>  <img src="https://img.shields.io/github/repo-size/LinArcX/wingpanel-indicator-disk-usage.svg"/>  <img src="https://img.shields.io/github/languages/top/LinArcX/wingpanel-indicator-disk-usage.svg"/>
 </h4>
 
 <h1 align="center">
@@ -35,4 +35,4 @@ To install, use ninja install:
 ### Void [WIP]
 
 ## License
-![License](https://img.shields.io/github/license/LinArcX/giti.svg)
+![License](https://img.shields.io/github/license/LinArcX/wingpanel-indicator-disk-usage.svg)
