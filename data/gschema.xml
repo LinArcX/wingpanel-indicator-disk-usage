@@ -2,7 +2,7 @@
 <schemalist>
     <schema path="/com/github/linarcx/indicator-disk-usage/" id="com.github.linarcx.indicator-disk-usage">
         <key name="paths" type="as">
-            <default>["/"]</default>
+            <default></default>
             <summary>Paths</summary>
             <description>List of all Paths that will calculate their space</description>
         </key>
