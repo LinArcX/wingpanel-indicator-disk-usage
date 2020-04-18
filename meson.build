@@ -13,6 +13,7 @@ dependencies = [
 
 files = [
     'src/Main.vala',
+    'src/Widgets/OverlayIcon.vala'
 ]
 
 shared_module(

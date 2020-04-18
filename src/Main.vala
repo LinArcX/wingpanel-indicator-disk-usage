@@ -4,7 +4,7 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
     const ulong GB = (1024 * 1024) * 1024 ;
 
     /* Our display widget, a composited icon */
-    private Wingpanel.Widgets.OverlayIcon display_widget ;
+    private DiskUsage.OverlayIcon display_widget ;
 
     /* The main widget that is displayed in the popover */
     private Gtk.Grid main_grid ;
@@ -58,6 +58,13 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
                 ulong total = (ulong) (buffer.f_blocks * buffer.f_frsize) / GB ;
                 ulong available = (ulong) (buffer.f_bfree * buffer.f_frsize) / GB ;
 
+                bool is_ok = false ;
+                bool is_warning = false ;
+                bool is_critiacl = false ;
+                if( available > total / 4 ) is_ok = true ;
+                if( available >= total / 10 && available <= total / 4 ) is_warning = true ;
+                if( available < total / 10 ) is_critiacl = true ;
+
                 var row = new Gtk.ListBoxRow () ;
                 row.height_request = 30 ;
 
@@ -65,12 +72,30 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
                 lbl_name.set_margin_left (15) ;
                 lbl_name.set_halign (Gtk.Align.START) ;
 
-                var lbl_size = new Gtk.Label (total.to_string () + " GB " + " / " + available.to_string () + " GB ") ;
-                // lbl_size.set_margin_right (5) ;
-                lbl_size.set_halign (Gtk.Align.END) ;
+                var lbl_size_total = new Gtk.Label (total.to_string () + " GB " + " / ") ;
+
+                var lbl_size_available = new Gtk.Label (available.to_string () + " GB ") ;
+                lbl_size_available.set_halign (Gtk.Align.END) ;
+                lbl_size_available.set_margin_right (15) ;
+                // lbl_size.override_background_color (Gtk.StateFlags.NORMAL, { 1, 0, 0, 1 }) ;
+
+                if( is_ok ){
+                    // rgba(0, 230, 64, 1)
+                    lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0, 0.90, 0.25, 1 }) ;
+                } else if( is_warning ){
+                    // rgba(238, 238, 0, 1)
+                    // lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0.933, 0.933, 0, 0.7 }) ;
+
+                    // rgba(244, 208, 63, 1)
+                    lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0.956, 0.815, 0.247, 0.7 }) ;
+                } else if( is_critiacl ){
+                    // rgba(217, 30, 24, 1)
+                    lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0.850, 0.117, 0.094, 1 }) ;
+                }
 
                 box.pack_start (lbl_name, false, false, 0) ;
-                box.pack_start (lbl_size, true, false, 0) ;
+                box.pack_end (lbl_size_available, false, false, 0) ;
+                box.pack_end (lbl_size_total, false, false, 0) ;
 
                 row.add (box) ;
                 row.show_all () ;
@@ -84,7 +109,7 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
         paths = list_of_all_mount_devices () ;
 
         /* Create a new composited icon */
-        display_widget = new Wingpanel.Widgets.OverlayIcon ("drive-harddisk") ;
+        display_widget = new DiskUsage.OverlayIcon ("drive-harddisk") ;
 
         generate_main_listbox () ;
 
@@ -97,7 +122,7 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
         var compositing_switch = new Wingpanel.Widgets.Switch ("Composited Icon") ;
         compositing_switch.notify["active"].connect (() => {
             /* If the switch is enabled set the icon name of the icon that should be drawn on top of the other one, if not hide the top icon. */
-            display_widget.set_overlay_icon_name (compositing_switch.active ? "network-vpn-lock-symbolic" : "") ;
+            display_widget.set_overlay_icon_name (compositing_switch.active ? "warning-symbolic" : "") ;
         }) ;
 
         main_grid = new Gtk.Grid () ;
@@ -151,3 +176,8 @@ public Wingpanel.Indicator ? get_indicator (Module module, Wingpanel.IndicatorMa
     /* Return the newly created indicator */
     return indicator ;
 }
+
+// lbl_size.set_margin_right (5) ;
+// lbl_size.override_color (StateFlags state, RGBA ? color) ;
+// lbl_size.set_markup ("<font color='red'>Small text</font>") ;
+// lbl_size.modify_fg (Gtk.StateType.NORMAL, { 1, 0, 0, 1 }) ;
