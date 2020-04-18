@@ -4,7 +4,7 @@
 </h4>
 
 <h1 align="center">
-    <img src="data/assets/shot.png" align="center" width="800"/>
+    <img src="data/assets/shot.png" align="center" width="500"/>
 </h1>
 
 ## Building and Installation
@@ -33,8 +33,6 @@ To install, use ninja install:
 
 ## Installation
 ### Void [WIP]
-
-### Arch [WIP]
 
 ## License
 ![License](https://img.shields.io/github/license/LinArcX/giti.svg)
