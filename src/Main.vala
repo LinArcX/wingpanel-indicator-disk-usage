@@ -126,8 +126,9 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
         _tree_view.insert_column (col_available, -1) ;
 
         var scrolled = new Gtk.ScrolledWindow (null, null) ;
-        scrolled.set_policy (Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC) ;
-        scrolled.min_content_height = 150 ;
+        scrolled.set_policy (Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC) ;
+        scrolled.min_content_height = 100 ;
+        scrolled.min_content_width = 100 ;
         scrolled.max_content_height = 300 ;
         scrolled.add (_tree_view) ;
 

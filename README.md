@@ -4,7 +4,7 @@
 </h4>
 
 <h1 align="center">
-    <img src="data/assets/shot.png" align="center" width="500"/>
+    <img src="data/assets/wingpanel-indicator-disk-usage.png" align="center" width="500"/>
 </h1>
 
 ## Building and Installation
