@@ -5,7 +5,6 @@ wingpanel_dep = dependency('wingpanel-2.0')
 dependencies = [
     dependency('glib-2.0'),
     dependency('gobject-2.0'),
-    dependency('granite'),
     dependency('gtk+-3.0'),
     meson.get_compiler('vala').find_library('posix'),
     wingpanel_dep
@@ -21,8 +20,8 @@ shared_module(
     files,
     dependencies: dependencies,
     install: true,
-    install_dir : wingpanel_dep.get_pkgconfig_variable('indicatorsdir')
-    #install_dir : '/usr/lib/wingpanel/'
+    #install_dir : wingpanel_dep.get_pkgconfig_variable('indicatorsdir')
+    install_dir : '/usr/lib/wingpanel/'
 )
 
 subdir('data')

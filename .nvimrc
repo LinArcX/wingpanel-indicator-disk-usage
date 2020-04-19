@@ -1,14 +1,3 @@
-"-------------- Key-mapping(F2-F11 are free) ------------""
-"Switch between .cpp/.hpp files
-nnoremap <F2> :FSHere<CR>
-
-call coc#config('languageserver', {
-            \ 'vala': {
-            \   "command": "vala-language-server",
-            \   "filetypes": ["vala"]
-            \ }
-            \})
-
 "---------- clang-format settings --------""
 function! FormatCurrentFile()
     "execute "normal! gg=G"
@@ -57,45 +46,6 @@ call quickui#menu#install('&Debugging', [
             \ [ "&restart\tShift-r", 'call feedkeys("\<Plug>VimspectorRestart")' ],
             \ [ "clo&se-debugger\tShift-s", ':call vimspector#Reset()' ],
             \ ], 5001)
-
-"rutnpm
-call quickui#menu#install('&Test', [
-            \ [ "&run", 'GTestRun' ],
-            \ [ "run-&under-cursor", 'GTestRunUnderCursor' ],
-            \ [ "&toggle-enable", 'GTestToggleEnabled' ],
-            \ [ "&next", 'GTestNext' ],
-            \ [ "&previous", 'GTestPrev' ],
-            \ [ "ju&mp-to-test", 'GTestJump' ],
-            \ ], 5002)
-
-"casmgn--pd--eb--xfoiat
-call quickui#menu#install('C&oc', [
-            \ [ "&config", 'CocConfig' ],
-            \ [ "code-&action", 'exec "normal \<Plug>(coc-codeaction)"' ],
-            \ [ "codeaction-&selected", 'exec "normal \<Plug>(coc-codeaction-selected)"' ],
-            \ [ "co&mmand", 'call feedkeys("\<Plug>(coc-command)")' ],
-            \ [ "dia&gnostics", 'exec "normal \<Plug>(coc-diagnostics)"' ],
-            \ [ "cha&nnel-output", 'CocCommand workspace.showOutput' ],
-            \ [ "--", '' ],
-            \ [ "im&plementation", 'call feedkeys("\<Plug>(coc-implementation)")' ],
-            \ [ "&definition", 'call feedkeys("\<Plug>(coc-definition)")' ],
-            \ [ "--", '' ],
-            \ [ "&enable", 'CocEnable' ],
-            \ [ "disa&ble", 'CocDisable' ],
-            \ [ "--", '' ],
-            \ [ "e&xtensions", ':CocList extensions' ],
-            \ [ "&fix-current", 'exec "normal \<Plug>(coc-fix-current)"' ],
-            \ [ "f&ormat-selected", 'exec "normal \<Plug>(coc-format-selected)"' ],
-            \ [ "&info", 'CocInfo' ],
-            \ [ "inst&all", 'exec "noraml \<Plug>(coc-install)"' ],
-            \ [ "lis&t", ':CocList' ],
-            \ [ "log", ':CocOpenLog' ],
-            \ [ "outline", ':CocList outline' ],
-            \ [ "rename", 'exec "noraml \<Plug>(coc-rename)"' ],
-            \ [ "restart", 'CocRestart' ],
-            \ [ "references", 'exec "noraml \<Plug>(coc-references)"' ],
-            \ [ "type-definition", 'exec "noraml \<Plug>(coc-type-definition)"' ],
-            \ ], 5003)
 
 "gsettings get org.gtk.Settings.Debug enable-inspector-keybinding
 "gsettings reset com.github.linarcx.giti directories
