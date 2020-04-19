@@ -1,212 +1,186 @@
 public class DiskUsage.Indicator : Wingpanel.Indicator {
-    string[] paths ;
-    bool is_warning = false ;
-    bool is_critical = false ;
-    bool show_badge_icons = false ;
-    const ulong GB = (1024 * 1024) * 1024 ;
+    bool _is_warning = false ;
+    bool _is_critical = false ;
+    bool _show_badge_icons = false ;
+    const ulong _GB = (1024 * 1024) * 1024 ;
 
-    /* The main widget that is displayed in the popover */
-    private Gtk.Grid main_grid ;
+    private Gtk.Grid _main_grid ;
+    private DiskUsage.OverlayIcon _display_widget ;
+    private GLib.Settings _settings { get ; set ; }
+    private Gtk.TreeView _tree_view { get ; set ; }
+    private Gtk.ListStore _list_store { get ; set ; }
 
-    /* ListBox contains all ListBoxRowsr */
-    public Gtk.ListBox lb_main ;
-
-    /* Our display widget, a composited icon */
-    private DiskUsage.OverlayIcon display_widget ;
-
-    /* An object of Glib.Settings that will update/fetch settings */
-    public GLib.Settings settings { get ; set ; }
+    enum Column {
+        PARTITION,
+        TOTAL,
+        AVAILABLE
+    }
 
     public Indicator () {
-        /* Some information about the indicator */
         Object (
             code_name: "disk-usage-indicator", /* Unique name */
             description: ("A wingpanel indicator to show disk-usage.")
             ) ;
     }
 
-    private void check_badges() {
-        if( show_badge_icons ){
-            /* If the switch is enabled set the icon name of the icon that should be drawn on top of the other one, if not hide the top icon. */
-            if( is_critical ){
-                display_widget.set_overlay_icon_name ("warning-symbolic") ;
+    private void CheckBadges() {
+        if( _show_badge_icons ){
+            if( _is_critical ){
+                _display_widget.set_overlay_icon_name ("warning-symbolic") ;
             }
-            if( is_warning ){
-                display_widget.set_overlay_icon_name ("dialog-warning") ;
+            if( _is_warning ){
+                _display_widget.set_overlay_icon_name ("dialog-warning") ;
             }
         } else {
-            display_widget.set_overlay_icon_name ("") ;
+            _display_widget.set_overlay_icon_name ("") ;
         }
     }
 
-    string[] list_of_all_mount_devices() {
-        string[] lst_md = {} ;
+    string[] ListOfMountedDevices() {
+        string[] _mounted_devices = {} ;
+        File _file = File.new_for_path ("/proc/mounts") ;
 
-        File file = File.new_for_path ("/proc/mounts") ;
         try {
-            FileInputStream fis = file.read () ;
-            DataInputStream dis = new DataInputStream (fis) ;
-            string line ;
+            string _line ;
+            FileInputStream _fis = _file.read () ;
+            DataInputStream _dis = new DataInputStream (_fis) ;
 
-            while((line = dis.read_line ()) != null ){
-                if( !line.contains ("tmpfs") &&
-                    !line.contains ("cgroup") &&
-                    !line.contains ("sysfs") &&
-                    !line.contains ("devpts") &&
-                    !line.contains ("securityfs") &&
-                    !line.contains ("proc")){
-                    lst_md += line.split (" ")[1] ;
+            while((_line = _dis.read_line ()) != null ){
+                if( !_line.contains ("tmpfs") &&
+                    !_line.contains ("cgroup") &&
+                    !_line.contains ("sysfs") &&
+                    !_line.contains ("devpts") &&
+                    !_line.contains ("securityfs") &&
+                    !_line.contains ("proc")){
+                    _mounted_devices += _line.split (" ")[1] ;
                 }
             }
         } catch ( Error e ) {
             print ("Error: %s\n", e.message) ;
         }
-        return lst_md ;
+        return _mounted_devices ;
     }
 
-    private void generate_main_listbox() {
-        lb_main = new Gtk.ListBox () ;
-
-        if( paths.length == 0 ){
-            print ("What's wrong with your system dude?!") ;
-        } else {
-            for( int i = 0 ; i < paths.length ; i++ ){
-                Gtk.Box box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 0) ;
-
-                Posix.statvfs buffer = Posix.statvfs () ;
-                Posix.statvfs_exec (paths[i], out buffer) ;
-                ulong total = (ulong) (buffer.f_blocks * buffer.f_frsize) / GB ;
-                ulong available = (ulong) (buffer.f_bfree * buffer.f_frsize) / GB ;
-
-                var row = new Gtk.ListBoxRow () ;
-                row.height_request = 30 ;
-
-                var lbl_name = new Gtk.Label (paths[i]) ;
-                lbl_name.set_margin_left (15) ;
-                lbl_name.set_halign (Gtk.Align.START) ;
-
-                var lbl_size_total = new Gtk.Label (total.to_string () + " GB " + " / ") ;
-                var lbl_size_available = new Gtk.Label (available.to_string () + " GB ") ;
-                lbl_size_available.set_halign (Gtk.Align.END) ;
-                lbl_size_available.set_margin_right (15) ;
-
-                if( available > total / 4 ){
-                    lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0, 0.90, 0.25, 1 }) ;
-                }
-                if( available >= total / 10 && available <= total / 4 ){
-                    is_warning = true ;
-                    lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0.956, 0.815, 0.247, 0.7 }) ;
-                    if( show_badge_icons ){
-                        display_widget.set_overlay_icon_name ("dialog-warning") ;
-                    }
-                }
-                if( available < total / 10 ){
-                    is_critical = true ;
-                    lbl_size_available.override_color (Gtk.StateFlags.NORMAL, { 0.850, 0.117, 0.094, 1 }) ;
-                    if( show_badge_icons ){
-                        display_widget.set_overlay_icon_name ("warning-symbolic") ;
-                    }
-                }
-                box.pack_start (lbl_name, false, false, 0) ;
-                box.pack_end (lbl_size_available, false, false, 0) ;
-                box.pack_end (lbl_size_total, false, false, 0) ;
-
-                row.add (box) ;
-                row.show_all () ;
-                lb_main.insert (row, -1) ;
+    private void set_badges(ulong total, ulong available) {
+        if( available >= total / 10 && available <= total / 4 ){
+            _is_warning = true ;
+            if( _show_badge_icons ){
+                _display_widget.set_overlay_icon_name ("dialog-warning") ;
+            }
+        }
+        if( available < total / 10 ){
+            _is_critical = true ;
+            if( _show_badge_icons ){
+                _display_widget.set_overlay_icon_name ("warning-symbolic") ;
             }
         }
     }
 
-    private void generate_other_parts() {
-        show_badge_icons = settings.get_boolean ("show-badge-icons") ;
+    private void GenerateSetListModel(string[] items) {
+        Gtk.TreeIter iter ;
+        for( int i = 0 ; i < items.length ; i++ ){
+            Posix.statvfs buffer = Posix.statvfs () ;
+            Posix.statvfs_exec (items[i], out buffer) ;
+            ulong total = (ulong) (buffer.f_blocks * buffer.f_frsize) / _GB ;
+            ulong available = (ulong) (buffer.f_bfree * buffer.f_frsize) / _GB ;
+
+            set_badges (total, available) ;
+
+            _list_store.append (out iter) ;
+            _list_store.set (iter,
+                             Column.PARTITION, items[i],
+                             Column.TOTAL, total.to_string (),
+                             Column.AVAILABLE, available.to_string ()) ;
+        }
+        _tree_view.set_model (_list_store) ;
+    }
+
+    public void UpdateTreeView() {
+        _list_store.clear () ;
+        string[] mounted_devices = ListOfMountedDevices () ;
+        GenerateSetListModel (mounted_devices) ;
+    }
+
+    construct {
+        _settings = new GLib.Settings ("com.github.linarcx.wingpanel.indicator-disk-usage") ;
+        _display_widget = new DiskUsage.OverlayIcon ("drive-harddisk") ;
+        _show_badge_icons = _settings.get_boolean ("show-badge-icons") ;
+
+        _tree_view = new Gtk.TreeView () ;
+        _list_store = new Gtk.ListStore (3, typeof (string), typeof (string), typeof (string)) ;
+
+        string[] mounted_devices = ListOfMountedDevices () ;
+        GenerateSetListModel (mounted_devices) ;
+
+        /*columns*/
+        Gtk.TreeViewColumn col_partition = new Gtk.TreeViewColumn.with_attributes ("PARTITION", new Gtk.CellRendererText (), "text", Column.PARTITION, null) ;
+        _tree_view.insert_column (col_partition, -1) ;
+
+        var col_total = new Gtk.TreeViewColumn.with_attributes ("TOTAL", new Gtk.CellRendererText (), "text", Column.TOTAL, null) ;
+        col_total.set_clickable (true) ;
+        Gtk.Label m_label = new Gtk.Label.with_mnemonic ("File") ;
+        m_label.set_visible (true) ;
+        _tree_view.insert_column (col_total, -1) ;
+
+        Gtk.TreeViewColumn col_available = new Gtk.TreeViewColumn.with_attributes ("AVAILABLE", new Gtk.CellRendererText (), "text", Column.AVAILABLE, null) ;
+        _tree_view.insert_column (col_available, -1) ;
 
         var scrolled = new Gtk.ScrolledWindow (null, null) ;
         scrolled.set_policy (Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC) ;
-        scrolled.min_content_height = 100 ;
-        scrolled.max_content_height = 600 ;
-        scrolled.add (lb_main) ;
+        scrolled.min_content_height = 150 ;
+        scrolled.max_content_height = 300 ;
+        scrolled.add (_tree_view) ;
 
         Wingpanel.Widgets.Switch _switch = new Wingpanel.Widgets.Switch ("Show badge Icons") ;
         _switch.notify["active"].connect (() => {
             if( _switch.active ){
-                settings.set_boolean ("show-badge-icons", true) ;
-                show_badge_icons = true ;
+                _settings.set_boolean ("show-badge-icons", true) ;
+                _show_badge_icons = true ;
             } else {
-                settings.set_boolean ("show-badge-icons", false) ;
-                show_badge_icons = false ;
+                _settings.set_boolean ("show-badge-icons", false) ;
+                _show_badge_icons = false ;
             }
-            check_badges () ;
+            CheckBadges () ;
         }) ;
 
-        main_grid = new Gtk.Grid () ;
-        main_grid.attach (scrolled, 0, 0) ;
-        main_grid.attach (new Wingpanel.Widgets.Separator (), 0, 1) ;
-        main_grid.attach (_switch, 0, 2) ;
+        _main_grid = new Gtk.Grid () ;
+        _main_grid.attach (scrolled, 0, 0) ;
+        _main_grid.attach (new Wingpanel.Widgets.Separator (), 0, 1) ;
+        _main_grid.attach (_switch, 0, 2) ;
 
-        if( show_badge_icons == true ){
+        if( _show_badge_icons == true ){
             _switch.active = true ;
         } else {
             _switch.active = false ;
         }
-        /* Indicator should be visible at startup */
+        CheckBadges () ;
+
         this.visible = true ;
     }
 
-    construct {
-        paths = list_of_all_mount_devices () ;
-        settings = new GLib.Settings ("com.github.linarcx.wingpanel.indicator-disk-usage") ;
-        display_widget = new DiskUsage.OverlayIcon ("drive-harddisk") ;
-
-        generate_main_listbox () ;
-        generate_other_parts () ;
-        check_badges () ;
-    }
-
-    /* This method is called to get the widget that is displayed in the panel */
     public override Gtk.Widget get_display_widget() {
-        return display_widget ;
+        return _display_widget ;
     }
 
-    /* This method is called to get the widget that is displayed in the popover */
     public override Gtk.Widget ? get_widget () {
-        return main_grid ;
+        UpdateTreeView () ;
+        return _main_grid ;
     }
 
-    /* This method is called when the indicator popover opened */
     public override void opened() {
-        /* Use this method to get some extra information while displaying the indicator */
-        generate_main_listbox () ;
-        generate_other_parts () ;
+        UpdateTreeView () ;
     }
 
-    /* This method is called when the indicator popover closed */
     public override void closed() {
-        /* Your stuff isn't shown anymore, now you can free some RAM, stop timers or anything else... */
     }
 
 }
 
-/*
- * This method is called once after your plugin has been loaded.
- * Create and return your indicator here if it should be displayed on the current server.
- */
 public Wingpanel.Indicator ? get_indicator (Module module, Wingpanel.IndicatorManager.ServerType server_type) {
-    /* A small message for debugging reasons */
     debug ("Activating DiskUsage Indicator") ;
-
-    /* Check which server has loaded the plugin */
     if( server_type != Wingpanel.IndicatorManager.ServerType.SESSION ){
-        /* We want to display our sample indicator only in the "normal" session, not on the login screen, so stop here! */
         return null ;
     }
-
-    /* Create the indicator */
     var indicator = new DiskUsage.Indicator () ;
-
-    /* Return the newly created indicator */
     return indicator ;
 }
-
-// private Wingpanel.Widgets.Switch _switch { get ; set ; }
-// is_critical = is_warning = false ;
