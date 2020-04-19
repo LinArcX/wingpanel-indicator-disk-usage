@@ -1,19 +1,21 @@
 public class DiskUsage.Indicator : Wingpanel.Indicator {
-
     string[] paths ;
     bool is_warning = false ;
     bool is_critical = false ;
     bool show_badge_icons = false ;
     const ulong GB = (1024 * 1024) * 1024 ;
 
+    /* The main widget that is displayed in the popover */
+    private Gtk.Grid main_grid ;
+
+    /* ListBox contains all ListBoxRowsr */
+    public Gtk.ListBox lb_main ;
+
     /* Our display widget, a composited icon */
     private DiskUsage.OverlayIcon display_widget ;
 
-    /* The main widget that is displayed in the popover */
-    private Gtk.Grid main_grid ;
-    public Gtk.ListBox lb_main ;
+    /* An object of Glib.Settings that will update/fetch settings */
     public GLib.Settings settings { get ; set ; }
-    private Wingpanel.Widgets.Switch _switch { get ; set ; }
 
     public Indicator () {
         /* Some information about the indicator */
@@ -21,6 +23,20 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
             code_name: "disk-usage-indicator", /* Unique name */
             description: ("A wingpanel indicator to show disk-usage.")
             ) ;
+    }
+
+    private void check_badges() {
+        if( show_badge_icons ){
+            /* If the switch is enabled set the icon name of the icon that should be drawn on top of the other one, if not hide the top icon. */
+            if( is_critical ){
+                display_widget.set_overlay_icon_name ("warning-symbolic") ;
+            }
+            if( is_warning ){
+                display_widget.set_overlay_icon_name ("dialog-warning") ;
+            }
+        } else {
+            display_widget.set_overlay_icon_name ("") ;
+        }
     }
 
     string[] list_of_all_mount_devices() {
@@ -102,16 +118,8 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
         }
     }
 
-    construct {
-        paths = list_of_all_mount_devices () ;
-
-        settings = new GLib.Settings ("com.github.linarcx.wingpanel.indicator-disk-usage") ;
+    private void generate_other_parts() {
         show_badge_icons = settings.get_boolean ("show-badge-icons") ;
-
-        /* Create a new composited icon */
-        display_widget = new DiskUsage.OverlayIcon ("drive-harddisk") ;
-
-        generate_main_listbox () ;
 
         var scrolled = new Gtk.ScrolledWindow (null, null) ;
         scrolled.set_policy (Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC) ;
@@ -119,7 +127,7 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
         scrolled.max_content_height = 600 ;
         scrolled.add (lb_main) ;
 
-        _switch = new Wingpanel.Widgets.Switch ("Show badge Icons") ;
+        Wingpanel.Widgets.Switch _switch = new Wingpanel.Widgets.Switch ("Show badge Icons") ;
         _switch.notify["active"].connect (() => {
             if( _switch.active ){
                 settings.set_boolean ("show-badge-icons", true) ;
@@ -128,6 +136,7 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
                 settings.set_boolean ("show-badge-icons", false) ;
                 show_badge_icons = false ;
             }
+            check_badges () ;
         }) ;
 
         main_grid = new Gtk.Grid () ;
@@ -135,8 +144,23 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
         main_grid.attach (new Wingpanel.Widgets.Separator (), 0, 1) ;
         main_grid.attach (_switch, 0, 2) ;
 
+        if( show_badge_icons == true ){
+            _switch.active = true ;
+        } else {
+            _switch.active = false ;
+        }
         /* Indicator should be visible at startup */
         this.visible = true ;
+    }
+
+    construct {
+        paths = list_of_all_mount_devices () ;
+        settings = new GLib.Settings ("com.github.linarcx.wingpanel.indicator-disk-usage") ;
+        display_widget = new DiskUsage.OverlayIcon ("drive-harddisk") ;
+
+        generate_main_listbox () ;
+        generate_other_parts () ;
+        check_badges () ;
     }
 
     /* This method is called to get the widget that is displayed in the panel */
@@ -152,27 +176,13 @@ public class DiskUsage.Indicator : Wingpanel.Indicator {
     /* This method is called when the indicator popover opened */
     public override void opened() {
         /* Use this method to get some extra information while displaying the indicator */
-        if( show_badge_icons == true ){
-            _switch.active = true ;
-        } else {
-            _switch.active = false ;
-        }
+        generate_main_listbox () ;
+        generate_other_parts () ;
     }
 
     /* This method is called when the indicator popover closed */
     public override void closed() {
         /* Your stuff isn't shown anymore, now you can free some RAM, stop timers or anything else... */
-        if( show_badge_icons ){
-            /* If the switch is enabled set the icon name of the icon that should be drawn on top of the other one, if not hide the top icon. */
-            if( is_critical ){
-                display_widget.set_overlay_icon_name ("warning-symbolic") ;
-            }
-            if( is_warning ){
-                display_widget.set_overlay_icon_name ("dialog-warning") ;
-            }
-        } else {
-            display_widget.set_overlay_icon_name ("") ;
-        }
     }
 
 }
@@ -197,3 +207,6 @@ public Wingpanel.Indicator ? get_indicator (Module module, Wingpanel.IndicatorMa
     /* Return the newly created indicator */
     return indicator ;
 }
+
+// private Wingpanel.Widgets.Switch _switch { get ; set ; }
+// is_critical = is_warning = false ;
