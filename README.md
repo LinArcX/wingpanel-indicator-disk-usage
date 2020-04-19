@@ -31,7 +31,8 @@ To install, use ninja install:
 `sudo ninja install`
 
 ## Installation
-### Void [WIP]
+### Void [[WIP](https://github.com/void-linux/void-packages/pull/21155)]
+
 
 ## License
 ![License](https://img.shields.io/github/license/LinArcX/wingpanel-indicator-disk-usage.svg)
